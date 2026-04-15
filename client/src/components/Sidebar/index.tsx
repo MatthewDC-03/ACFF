@@ -12,7 +12,7 @@ const Sidebar = ({children} : {
     const { logout } = useLogout()
     const navigate = useNavigate()
     return(
-        <div className="p-10 w-[300px] flex flex-col items-center justify-between">
+        <div className="p-10 w-[300px] h-full flex flex-col items-center justify-between">
             {children}
             
             {/* Gateway Button */}

@@ -17,6 +17,22 @@ const userSchema = new Schema({
         type: String,
         require: true,
     },
+    about: {
+        type: String,
+        default: ''
+    },
+    totalVideos: {
+        type: Number,
+        default: 0
+    },
+    followers: {
+        type: Number,
+        default: 0
+    },
+    likes: {
+        type: Number,
+        default: 0
+    },
     type: { type: Boolean, default: false }
 })
 

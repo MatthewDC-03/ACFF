@@ -32,7 +32,10 @@ app.use((req,res,next)=>{
 app.use('/api/user', userRoutes)
 
 // connecto db
-mongoose.connect('mongodb+srv://dawan:dawan12345678@acffdb.eitoc.mongodb.net/?retryWrites=true&w=majority&appName=acffDB')
+mongoose.connect(process.env.MONGO_URI, {
+    tls: true,
+    serverSelectionTimeoutMS: 10000,
+})
 .then(()=>{
     app.listen(4000, () =>{
         console.log('connected to db')

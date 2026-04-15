@@ -63,7 +63,7 @@ export const WiFiConnection = () =>{
             />
             </div>
             </Sidebar>
-            {userId == "674d5e46c3dbf924899a41d4" ? (
+        {userId === "69dfb15bced1f6ebaa049838" ? (
                 <div className="w-full h-full flex flex-col justify-center items-center pr-64" >
                     <img src={WiFiCat} alt="cat" height={400} width={400}/>
                 <div className="h-fit w-fit flex flex-col gap-5" >
@@ -75,7 +75,6 @@ export const WiFiConnection = () =>{
                      </p>
                 </div>
                 <div className="w-full flex justify-end" >
-                    
                 <Link to="/feed" >
                 <PrimaryButton 
                 text="Done" 
@@ -92,7 +91,6 @@ export const WiFiConnection = () =>{
                     <img src={UnderConstruction} alt="under_construction" height={700} width={700} />
                     <h1 className="text-4xl font-extrabold" >Testing Mode - Authorized Access Only</h1>
                     <p className="text-lg font-semibold leading-10 " >
-
 This site is currently in the testing phase and is only accessible to authorized users. Unauthorized access is restricted. Please ensure you have the proper credentials to continue.
                      </p>
                 </div>

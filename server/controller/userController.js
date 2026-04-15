@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken')
 const User = require('../model/userModel')
+const bcrypt = require('bcryptjs')
+const validator = require('validator')
 const { Time, TimeModel } = require('../model/timeModel')
 const { LogsTime } = require('../model/timeLogsModel')
 const { esp32 } = require('../model/esp32Model')
@@ -227,4 +229,99 @@ const esp32CamID = async (req, res) => {
   }
 };
 
-module.exports = { loginUser, registerUser, getUser, manualActivation, getTimedFeed, postTimedFeed, deleteTimedFeed, logsTimeFeed, getLogsTimedFeed, esp32CamID }
+// Update username
+const updateUsername = async (req, res) => {
+    const { id } = req.params
+    const { newUsername, currentPassword } = req.body
+
+    if (!newUsername || !currentPassword) {
+        return res.status(400).json({ error: 'New username and current password are required' })
+    }
+
+    try {
+        const user = await User.findById(id)
+        if (!user) return res.status(404).json({ error: 'User not found' })
+
+        // Verify current password before allowing change
+        const match = await bcrypt.compare(currentPassword, user.password)
+        if (!match) return res.status(401).json({ error: 'Incorrect current password' })
+
+        // Check if username is already taken
+        const exists = await User.findOne({ username: newUsername })
+        if (exists) return res.status(400).json({ error: 'Username already taken' })
+
+        user.username = newUsername
+        await user.save()
+
+        res.status(200).json({ message: 'Username updated successfully', username: newUsername })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+// Update password
+const updatePassword = async (req, res) => {
+    const { id } = req.params
+    const { currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current and new password are required' })
+    }
+
+    try {
+        const user = await User.findById(id)
+        if (!user) return res.status(404).json({ error: 'User not found' })
+
+        // Verify current password
+        const match = await bcrypt.compare(currentPassword, user.password)
+        if (!match) return res.status(401).json({ error: 'Incorrect current password' })
+
+        // Validate new password strength
+        if (!validator.isStrongPassword(newPassword)) {
+            return res.status(400).json({ error: 'New password is not strong enough' })
+        }
+
+        const salt = await bcrypt.genSalt(10)
+        user.password = await bcrypt.hash(newPassword, salt)
+        await user.save()
+
+        res.status(200).json({ message: 'Password updated successfully' })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+// Update about
+const updateAbout = async (req, res) => {
+    const { id } = req.params
+    const { about } = req.body
+
+    try {
+        const user = await User.findByIdAndUpdate(id, { about }, { new: true })
+        if (!user) return res.status(404).json({ error: 'User not found' })
+        res.status(200).json({ message: 'About updated successfully', about: user.about })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+// Get recent activity (feed logs) for a user
+const getRecentActivity = async (req, res) => {
+    const { id: userId } = req.params
+
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required.' })
+    }
+
+    try {
+        const logs = await LogsTime.find({ userId })
+            .sort({ _id: -1 }) // newest first
+            .limit(10)
+
+        res.status(200).json(logs)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+module.exports = { loginUser, registerUser, getUser, manualActivation, getTimedFeed, postTimedFeed, deleteTimedFeed, logsTimeFeed, getLogsTimedFeed, esp32CamID, updateUsername, updatePassword, updateAbout, getRecentActivity }

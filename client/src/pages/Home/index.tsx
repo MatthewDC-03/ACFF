@@ -5,15 +5,24 @@ import Video from "../../assets/videos/cattt.mp4"
 import ClickableImage from "../../components/Buttons/ClickableImage"
 import CommentIcon from "../../assets/svg/comment.svg"
 import HeartIcon from "../../assets/svg/heart.svg"
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import PrimaryButton from "../../components/Buttons/Primary"
 import DirectSidebar from "../../components/ClickableElement/DirectSidebar"
 import Profile from "../../assets/svg/profile.svg"
-import Homes from "../../assets/svg/profile.svg"
+import Homes from "../../assets/svg/home.svg"
+
 const Home = () =>{
     const [comment,setComment] = useState(false)
     const [heart,setHeart] = useState(false)
+    const navigate = useNavigate()
+
+    // Ensure body snap scroll is restored when coming from profile page
+    useEffect(() => {
+        document.body.style.overflow = ''
+        document.body.style.height = '100vh'
+    }, [])
+
     function handleCommentClick(){
         setComment(item => !item)
     }
@@ -21,8 +30,9 @@ const Home = () =>{
         setHeart(item => !item)
     }
     
-
-
+    function handleProfileClick(){
+        navigate('/profile')
+    }
 
     return(
         <>
@@ -55,6 +65,7 @@ const Home = () =>{
             color="text-black"
             filter="brightness(0) saturate(100%) invert(0%) sepia(86%) saturate(19%) hue-rotate(252deg) brightness(94%) contrast(76%)"
             font_size="text-xl"
+            onClick={handleProfileClick}
             />
             </div>
             </Sidebar>

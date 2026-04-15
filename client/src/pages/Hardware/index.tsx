@@ -4,35 +4,37 @@ import PrimaryButton from "../../components/Buttons/Primary"
 import Sidebar from "../../components/Sidebar"
 import SecondaryButton from "../../components/Buttons/Secondary"
 import { useAuthContext } from "../../hooks/useAuthContext"
+import { useApi } from "../../hooks/useApi"
 import { useState } from "react"
+
 export const Hardware = () =>{
     const { user } = useAuthContext() 
+    const { apiCall } = useApi()
     const userId = user?.userIdLogin
     const [ isLoadng, setIsLoading ] = useState<boolean>(false)
      
 
     const handleToggleType = async () =>{
         try {
-            const res = await fetch('https://acff-api.vercel.app/api/user/toggle-type', {
+            const res = await apiCall('https://acff-api.vercel.app/api/user/toggle-type', {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ _id: userId }), // Send username instead of userId
+                body: JSON.stringify({ _id: userId }),
             });
 
-            const data = await res.json(); // Use 'res' to get the response JSON
+            const data = await res.json();
             if (res.ok) {
-                console.log(data); // Log the success message
+                console.log(data);
                 setIsLoading(true)
                 setTimeout(()=>{
                     setIsLoading(false)
                 }, 5000)
             } else {
-                console.log(data); // Log the error message
+                console.log(data);
+                alert('Error: ' + data.error)
             }
         } catch (error) {
-            console.error('Error toggling type:', error); // Log any errors that occur
+            console.error('Error toggling type:', error);
+            alert('Error: ' + error)
         }
     }
 

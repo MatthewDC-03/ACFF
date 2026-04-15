@@ -16,7 +16,7 @@ export const useSignup = () => {
         for local website use this fetch: /api/user/register
         */
 
-        const response = await fetch('https://acff-api.vercel.app/api/user/register', {
+        const response = await fetch('/api/user/register', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username,email,password}) // convert to json file

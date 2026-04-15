@@ -22,7 +22,7 @@ export const useLogin = () => {
         for local website use this fetch: api/user/login
         */
 
-        const response = await fetch('https://acff-api.vercel.app/api/user/login', {
+        const response = await fetch('/api/user/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({username,password}) // convert to json file

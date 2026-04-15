@@ -1,4 +1,5 @@
 const express = require('express')
+const requireAuth = require('../middleware/requireAuth')
 
 const { loginUser, 
         registerUser, 
@@ -9,40 +10,61 @@ const { loginUser,
         deleteTimedFeed, 
         logsTimeFeed, 
         getLogsTimedFeed,
-        esp32CamID
+        esp32CamID,
+        updateUsername,
+        updatePassword,
+        updateAbout,
+        getRecentActivity
       } = require('../controller/userController')
+
+const { getAllUsers } = require('../controller/adminController')
 
 const router = express.Router()
 
-// login route
+// login route (no auth required)
 router.post('/login', loginUser)
 
-// register route
+// register route (no auth required)
 router.post('/register', registerUser)
 
-// get user
-router.get('/:id', getUser)
+// get all users (no auth required - for debugging/admin)
+router.get('/admin/all-users', getAllUsers)
 
-// FeederShare hardware - manual active
-router.patch('/toggle-type', manualActivation) 
+// get user (protected)
+router.get('/:id', requireAuth, getUser)
 
-// FeederShare hardware - get timed feed
-router.get('/:id/get-times', getTimedFeed)
+// FeederShare hardware - manual active (protected)
+router.patch('/toggle-type', requireAuth, manualActivation) 
 
-// FeederShare hardware - post timed feed
-router.post('/set-time', postTimedFeed)
+// FeederShare hardware - get timed feed (protected)
+router.get('/:id/get-times', requireAuth, getTimedFeed)
 
-// FeederShare hardware - delete timed feed
-router.delete('/delete-time', deleteTimedFeed)
+// FeederShare hardware - post timed feed (protected)
+router.post('/set-time', requireAuth, postTimedFeed)
 
-// FeederShare time feed logs
-router.post('/logs-feed', logsTimeFeed)
+// FeederShare hardware - delete timed feed (protected)
+router.delete('/delete-time', requireAuth, deleteTimedFeed)
 
-// FeederShare get time feed logs
-router.get('/:id/get-logs', getLogsTimedFeed)
+// FeederShare time feed logs (protected)
+router.post('/logs-feed', requireAuth, logsTimeFeed)
 
-// FeederShare update esp32 id
-router.patch('/esp32',esp32CamID)
+// FeederShare get time feed logs (protected)
+router.get('/:id/get-logs', requireAuth, getLogsTimedFeed)
+
+// FeederShare update esp32 id (protected)
+router.patch('/esp32', requireAuth, esp32CamID)
+
+// Update username (protected)
+router.patch('/:id/update-username', requireAuth, updateUsername)
+
+// Update password (protected)
+router.patch('/:id/update-password', requireAuth, updatePassword)
+
+// Update about (protected)
+router.patch('/:id/update-about', requireAuth, updateAbout)
+
+// Get recent activity (protected)
+router.get('/:id/recent-activity', requireAuth, getRecentActivity)
 
 router.get("/stream", (req, res) => {
     res.redirect(`http://192.168.100.32/stream`);

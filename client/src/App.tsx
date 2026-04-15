@@ -8,6 +8,7 @@ import Hardware from './pages/Hardware';
 import WiFiConnection from './pages/WiFiConnection';
 import ClockComponent from './pages/TimeFeed';
 import FeedLogs from './pages/FeedLogs';
+import ProfilePage from './pages/Profile';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path='wifi' element={<WiFiConnection />}></Route>
         <Route path='clock' element={<ClockComponent />}></Route>
         <Route path='logs' element={<FeedLogs />}></Route>
+        <Route path='profile' element={<ProfilePage />}></Route>
 
       </Routes>
       </BrowserRouter>
