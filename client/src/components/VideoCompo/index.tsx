@@ -5,23 +5,20 @@ import Pause from "../../assets/svg/pause.svg"
 
 const VideoPlayer = ({url} : {url: string}) => {
   const [indicatorVisible] = useState(true);
-  const [playing, setPlaying] = useState(false); // Track playing state
-  const [progress, setProgress] = useState(0); // Track progress (0 to 100)
-  const [showButton, setShowButton] = useState(false) // hide and unhide play/pause button
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showButton, setShowButton] = useState(true) // visible by default
   const playerRef = useRef<ReactPlayer | null>(null);
 
-  // Handle mouse enter and leave events
-  const handleMouseEnter = () => {
-    setShowButton(true)
-  };
-
+  const handleMouseEnter = () => setShowButton(true)
   const handleMouseLeave = () => {
-      setShowButton(false)
-    };
+    if (playing) setShowButton(false) // hide only when playing
+  }
 
   const handlePlayPause = () => {
-    setPlaying(!playing);
-  };
+    setPlaying(p => !p)
+    setShowButton(false)
+  }
   
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -47,19 +44,22 @@ const VideoPlayer = ({url} : {url: string}) => {
     >
       <ReactPlayer
         ref={playerRef}
-        url={url} // Use the imported video file
+        url={url}
         width="100%"
         height="100%"
         controls={false}
-        playing={playing} // Control play state
-        onProgress={(state)=>{
+        playing={playing}
+        onPlay={() => setShowButton(false)}
+        onPause={() => setShowButton(true)}
+        onProgress={(state) => {
             const percent = state.played * 100
-                setProgress(percent)
-        }} // Handle progress updates
+            setProgress(percent)
+        }}
         onEnded={() => {
             playerRef.current?.seekTo(0)
-            setPlaying(true)
-        }} // Hide indicator when video ends
+            setPlaying(false)
+            setShowButton(true)
+        }}
       />
 
         {/* Indicator bar */}
@@ -75,9 +75,9 @@ const VideoPlayer = ({url} : {url: string}) => {
       </div>
       )}
 
-      {/* Customize Play/Pause Bytton */}
-      {showButton && (
-        <div className="absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4 ">
+      {/* Play/Pause Button — always visible when paused, visible on hover when playing */}
+      {(showButton || !playing) && (
+        <div className="absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4">
         <button
           className="bg-primary text-white p-6 text-center flex items-center justify-center rounded-full focus:outline-none hover:bg-primary/80 transition"
           onClick={handlePlayPause}

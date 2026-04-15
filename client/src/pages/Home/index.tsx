@@ -1,7 +1,9 @@
 import Navbar from "../../components/Navbar"
 import Sidebar from "../../components/Sidebar"
 import VideoPlayer from "../../components/VideoCompo"
-import Video from "../../assets/videos/cattt.mp4"
+import LocalVideo from "../../assets/videos/cattt.mp4"
+import CatVideo2 from "../../assets/videos/mixkit-pet-owner-playing-with-a-cute-cat-1779-hd-ready.mp4"
+import CatVideo3 from "../../assets/videos/mixkit-petting-a-cute-cat-close-up-1778-hd-ready.mp4"
 import ClickableImage from "../../components/Buttons/ClickableImage"
 import CommentIcon from "../../assets/svg/comment.svg"
 import HeartIcon from "../../assets/svg/heart.svg"
@@ -14,8 +16,24 @@ import Homes from "../../assets/svg/home.svg"
 import { useAuthContext } from "../../hooks/useAuthContext"
 import { useApi } from "../../hooks/useApi"
 
-// Fixed video ID for the single video on this page
-const VIDEO_ID = "cattt_main"
+// Cat video feed — local videos only (online sources block direct embedding)
+const VIDEO_FEED = [
+    {
+        id: "cattt_main",
+        url: LocalVideo,
+        title: "Cat on Piano"
+    },
+    {
+        id: "cat_playing_1779",
+        url: CatVideo2,
+        title: "Pet Owner Playing with Cat"
+    },
+    {
+        id: "cat_petting_1778",
+        url: CatVideo3,
+        title: "Petting a Cute Cat"
+    },
+]
 
 interface CommentType {
     _id: string
@@ -25,65 +43,119 @@ interface CommentType {
     createdAt: string
 }
 
+interface VideoState {
+    liked: boolean
+    likeCount: number
+    comments: CommentType[]
+}
+
 const Home = () => {
-    const [heart, setHeart] = useState(false)
-    const [likeCount, setLikeCount] = useState(0)
-    const [likeLoading, setLikeLoading] = useState(false)
-    const [commentOpen, setCommentOpen] = useState(false)
-    const [comments, setComments] = useState<CommentType[]>([])
-    const [commentText, setCommentText] = useState('')
-    const [posting, setPosting] = useState(false)
     const navigate = useNavigate()
     const { user } = useAuthContext()
     const { apiCall } = useApi()
     const inputRef = useRef<HTMLInputElement>(null)
 
-    // Restore body scroll for snap behavior
+    // Per-video state map
+    const [videoStates, setVideoStates] = useState<Record<string, VideoState>>(
+        Object.fromEntries(VIDEO_FEED.map(v => [v.id, { liked: false, likeCount: 0, comments: [] }]))
+    )
+    const [likeLoading, setLikeLoading] = useState<Record<string, boolean>>({})
+
+    // Comment drawer state
+    const [activeVideoId, setActiveVideoId] = useState<string | null>(null)
+    const [commentText, setCommentText] = useState('')
+    const [posting, setPosting] = useState(false)
+
+    // Restore body snap scroll
     useEffect(() => {
         document.body.style.overflow = ''
         document.body.style.height = '100vh'
     }, [])
 
-    // Fetch like state on mount
+    // Fetch likes for all videos on mount
     useEffect(() => {
         if (!user) return
-        const fetchLikes = async () => {
+        VIDEO_FEED.forEach(async (video) => {
             try {
-                const res = await apiCall(`/api/user/likes/${VIDEO_ID}?userId=${user.userIdLogin}`)
+                const res = await apiCall(`/api/user/likes/${video.id}?userId=${user.userIdLogin}`)
                 if (res.ok) {
                     const data = await res.json()
-                    setHeart(data.liked)
-                    setLikeCount(data.count)
+                    setVideoStates(prev => ({
+                        ...prev,
+                        [video.id]: { ...prev[video.id], liked: data.liked, likeCount: data.count }
+                    }))
                 }
             } catch { /* silent */ }
-        }
-        fetchLikes()
+        })
     }, [user])
 
     // Fetch comments when drawer opens
     useEffect(() => {
-        if (!commentOpen) return
+        if (!activeVideoId) return
         const fetchComments = async () => {
             try {
-                const res = await apiCall(`/api/user/comments/${VIDEO_ID}`)
+                const res = await apiCall(`/api/user/comments/${activeVideoId}`)
                 if (res.ok) {
                     const data = await res.json()
-                    setComments(data)
+                    setVideoStates(prev => ({
+                        ...prev,
+                        [activeVideoId]: { ...prev[activeVideoId], comments: data }
+                    }))
                 }
             } catch { /* silent */ }
         }
         fetchComments()
         setTimeout(() => inputRef.current?.focus(), 300)
-    }, [commentOpen])
+    }, [activeVideoId])
+
+    const handleToggleLike = async (videoId: string) => {
+        if (!user || likeLoading[videoId]) return
+        setLikeLoading(prev => ({ ...prev, [videoId]: true }))
+        const wasLiked = videoStates[videoId].liked
+        // Optimistic update
+        setVideoStates(prev => ({
+            ...prev,
+            [videoId]: {
+                ...prev[videoId],
+                liked: !wasLiked,
+                likeCount: wasLiked ? prev[videoId].likeCount - 1 : prev[videoId].likeCount + 1
+            }
+        }))
+        try {
+            const res = await apiCall('/api/user/likes/toggle', {
+                method: 'POST',
+                body: JSON.stringify({ videoId, userId: user.userIdLogin })
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setVideoStates(prev => ({
+                    ...prev,
+                    [videoId]: { ...prev[videoId], liked: data.liked, likeCount: data.count }
+                }))
+            } else {
+                // Revert
+                setVideoStates(prev => ({
+                    ...prev,
+                    [videoId]: { ...prev[videoId], liked: wasLiked, likeCount: wasLiked ? prev[videoId].likeCount + 1 : prev[videoId].likeCount - 1 }
+                }))
+            }
+        } catch {
+            setVideoStates(prev => ({
+                ...prev,
+                [videoId]: { ...prev[videoId], liked: wasLiked }
+            }))
+        }
+        setLikeLoading(prev => ({ ...prev, [videoId]: false }))
+    }
 
     const handlePostComment = async () => {
-        if (!commentText.trim() || !user) return
+        if (!commentText.trim() || !user || !activeVideoId) return
         setPosting(true)
         try {
             const res = await apiCall('/api/user/comments', {
                 method: 'POST',
                 body: JSON.stringify({
-                    videoId: VIDEO_ID,
+                    videoId: activeVideoId,
                     userId: user.userIdLogin,
                     username: user.username,
                     text: commentText.trim()
@@ -91,51 +163,35 @@ const Home = () => {
             })
             if (res.ok) {
                 const newComment = await res.json()
-                setComments(prev => [newComment, ...prev])
+                setVideoStates(prev => ({
+                    ...prev,
+                    [activeVideoId]: {
+                        ...prev[activeVideoId],
+                        comments: [newComment, ...prev[activeVideoId].comments]
+                    }
+                }))
                 setCommentText('')
             }
         } catch { /* silent */ }
         setPosting(false)
     }
 
-    const handleDeleteComment = async (commentId: string) => {
+    const handleDeleteComment = async (videoId: string, commentId: string) => {
         try {
             const res = await apiCall(`/api/user/comments/${commentId}`, {
                 method: 'DELETE',
                 body: JSON.stringify({ userId: user?.userIdLogin })
             })
             if (res.ok) {
-                setComments(prev => prev.filter(c => c._id !== commentId))
+                setVideoStates(prev => ({
+                    ...prev,
+                    [videoId]: {
+                        ...prev[videoId],
+                        comments: prev[videoId].comments.filter(c => c._id !== commentId)
+                    }
+                }))
             }
         } catch { /* silent */ }
-    }
-
-    const handleToggleLike = async () => {
-        if (!user || likeLoading) return
-        setLikeLoading(true)
-        // Optimistic update
-        const wasLiked = heart
-        setHeart(!wasLiked)
-        setLikeCount(c => wasLiked ? c - 1 : c + 1)
-        try {
-            const res = await apiCall('/api/user/likes/toggle', {
-                method: 'POST',
-                body: JSON.stringify({ videoId: VIDEO_ID, userId: user.userIdLogin })
-            })
-            if (res.ok) {
-                const data = await res.json()
-                setHeart(data.liked)
-                setLikeCount(data.count)
-            } else {
-                // Revert on failure
-                setHeart(wasLiked)
-                setLikeCount(c => wasLiked ? c + 1 : c - 1)
-            }
-        } catch {
-            setHeart(wasLiked)
-            setLikeCount(c => wasLiked ? c + 1 : c - 1)
-        }
-        setLikeLoading(false)
     }
 
     const formatTime = (iso: string) => {
@@ -148,16 +204,16 @@ const Home = () => {
         return `${Math.floor(hrs / 24)}d ago`
     }
 
+    const activeComments = activeVideoId ? videoStates[activeVideoId]?.comments ?? [] : []
+
     return (
         <>
-            {/* Navbar */}
             <Navbar>
                 <Link to="/wifi">
                     <PrimaryButton text="Let's Feed" className='rounded-lg' />
                 </Link>
             </Navbar>
 
-            {/* Homepage Container */}
             <div className="absolute flex flex-row h-[calc(100vh-89.09px)] mt-[89.09px] w-100">
                 <Sidebar>
                     <div className="flex flex-col gap-10">
@@ -175,43 +231,49 @@ const Home = () => {
                     </div>
                 </Sidebar>
 
-                {/* Videos Container */}
-                <div className="h-100 w-[calc(100vw-300px)] p-7 overflow-auto flex items-center flex-col gap-14 snap-y snap-mandatory">
-                    <div className="flex flex-row items-end justify-center gap-5 h-100 w-100 snap-center">
-                        <VideoPlayer url={Video} />
+                {/* Videos Container — snap scroll */}
+                <div className="h-100 w-[calc(100vw-300px)] p-7 overflow-y-scroll flex items-center flex-col gap-14 snap-y snap-mandatory">
+                    {VIDEO_FEED.map((video) => {
+                        const state = videoStates[video.id]
+                        return (
+                            <div key={video.id} className="flex flex-row items-end justify-center gap-5 h-100 w-100 snap-center flex-shrink-0">
+                                <VideoPlayer url={video.url} />
 
-                        {/* User Actions */}
-                        <div className="flex flex-col gap-3">
-                            {/* Heart with count */}
-                            <div className="flex flex-col items-center gap-1">
-                                <ClickableImage
-                                    action={handleToggleLike}
-                                    getAction={heart}
-                                    src={HeartIcon}
-                                />
-                                <span className={`text-sm font-semibold ${heart ? 'text-primary' : 'text-black/50'}`}>
-                                    {likeCount}
-                                </span>
+                                {/* User Actions */}
+                                <div className="flex flex-col gap-3">
+                                    {/* Heart */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <ClickableImage
+                                            action={() => handleToggleLike(video.id)}
+                                            getAction={state.liked}
+                                            src={HeartIcon}
+                                        />
+                                        <span className={`text-sm font-semibold ${state.liked ? 'text-primary' : 'text-black/50'}`}>
+                                            {state.likeCount}
+                                        </span>
+                                    </div>
+                                    {/* Comment */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <ClickableImage
+                                            action={() => setActiveVideoId(video.id)}
+                                            getAction={activeVideoId === video.id}
+                                            src={CommentIcon}
+                                        />
+                                        <span className={`text-sm font-semibold ${activeVideoId === video.id ? 'text-primary' : 'text-black/50'}`}>
+                                            {state.comments.length}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            {/* Comment with count */}
-                            <div className="flex flex-col items-center gap-1">
-                                <ClickableImage action={() => setCommentOpen(true)} getAction={commentOpen} src={CommentIcon} />
-                                <span className={`text-sm font-semibold ${commentOpen ? 'text-primary' : 'text-black/50'}`}>
-                                    {comments.length}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                        )
+                    })}
                 </div>
             </div>
 
-            {/* ── Comment Drawer Overlay ── */}
-            {commentOpen && (
-                <div className="fixed inset-0 z-50 flex items-end justify-end" onClick={() => setCommentOpen(false)}>
-                    {/* Backdrop */}
+            {/* ── Comment Drawer ── */}
+            {activeVideoId && (
+                <div className="fixed inset-0 z-50 flex items-end justify-end" onClick={() => setActiveVideoId(null)}>
                     <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-
-                    {/* Drawer */}
                     <div
                         className="relative z-10 bg-white rounded-tl-2xl rounded-bl-2xl flex flex-col shadow-2xl"
                         style={{ width: '420px', height: 'calc(100vh - 89.09px)', marginTop: '89.09px' }}
@@ -221,10 +283,10 @@ const Home = () => {
                         <div className="flex items-center justify-between px-5 py-4 border-b border-primary/20">
                             <div>
                                 <h2 className="text-lg font-bold text-black">Comments</h2>
-                                <p className="text-xs text-black/40">{comments.length} comment{comments.length !== 1 ? 's' : ''}</p>
+                                <p className="text-xs text-black/40">{activeComments.length} comment{activeComments.length !== 1 ? 's' : ''}</p>
                             </div>
                             <button
-                                onClick={() => setCommentOpen(false)}
+                                onClick={() => setActiveVideoId(null)}
                                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/10 transition text-black/50 hover:text-black text-xl font-light"
                             >
                                 ✕
@@ -233,21 +295,17 @@ const Home = () => {
 
                         {/* Comments List */}
                         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
-                            {comments.length === 0 ? (
+                            {activeComments.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-3 text-black/30">
                                     <img src={CommentIcon} alt="no comments" className="w-12 h-12 opacity-20" />
                                     <p className="text-sm">No comments yet. Be the first!</p>
                                 </div>
                             ) : (
-                                comments.map(c => (
+                                activeComments.map(c => (
                                     <div key={c._id} className="flex gap-3 group">
-                                        {/* Avatar */}
                                         <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-sm font-bold text-primary">
-                                                {c.username.charAt(0).toUpperCase()}
-                                            </span>
+                                            <span className="text-sm font-bold text-primary">{c.username.charAt(0).toUpperCase()}</span>
                                         </div>
-                                        {/* Content */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-baseline gap-2">
                                                 <span className="text-sm font-semibold text-black">{c.username}</span>
@@ -255,10 +313,9 @@ const Home = () => {
                                             </div>
                                             <p className="text-sm text-black/70 mt-0.5 break-words">{c.text}</p>
                                         </div>
-                                        {/* Delete — only own comments */}
                                         {user?.userIdLogin === c.userId && (
                                             <button
-                                                onClick={() => handleDeleteComment(c._id)}
+                                                onClick={() => handleDeleteComment(activeVideoId, c._id)}
                                                 className="opacity-0 group-hover:opacity-100 transition text-black/30 hover:text-red-400 text-xs flex-shrink-0 self-start mt-1"
                                             >
                                                 ✕
@@ -274,9 +331,7 @@ const Home = () => {
                             {user ? (
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-sm font-bold text-primary">
-                                            {user.username?.charAt(0).toUpperCase()}
-                                        </span>
+                                        <span className="text-sm font-bold text-primary">{user.username?.charAt(0).toUpperCase()}</span>
                                     </div>
                                     <input
                                         ref={inputRef}
