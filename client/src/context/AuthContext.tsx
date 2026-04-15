@@ -8,7 +8,8 @@ interface UserType {
 
 interface UserLocalType {
     username: string,
-    token: string
+    token: string,
+    userIdLogin: string
 }
 
 export const AuthContext = createContext<UserType>({} as UserType)
@@ -37,10 +38,9 @@ export const AuthContextProvider = ({children}:{children: React.ReactNode}) => {
                 dispatch({type: 'LOGIN', payload:user})
         }
         else{
-            console.log('no user')
+            // no user in storage, stay logged out
         }
     },[])
-    console.log('AuthContext state:', state)
 
     return (
         <AuthContext.Provider value={{...state, dispatch}}>

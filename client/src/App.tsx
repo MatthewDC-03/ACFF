@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
@@ -9,22 +8,26 @@ import WiFiConnection from './pages/WiFiConnection';
 import ClockComponent from './pages/TimeFeed';
 import FeedLogs from './pages/FeedLogs';
 import ProfilePage from './pages/Profile';
+import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
 
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<Home />}></Route>
-        <Route path='login' element={<SignIn  />}></Route>
-        <Route path='register' element={<Register />}></Route>
-        <Route path='feed' element={<Hardware />}></Route>
-        <Route path='wifi' element={<WiFiConnection />}></Route>
-        <Route path='clock' element={<ClockComponent />}></Route>
-        <Route path='logs' element={<FeedLogs />}></Route>
-        <Route path='profile' element={<ProfilePage />}></Route>
+        <Routes>
+          {/* Public routes — redirect to home if already logged in */}
+          <Route path='login' element={<GuestRoute><SignIn /></GuestRoute>} />
+          <Route path='register' element={<GuestRoute><Register /></GuestRoute>} />
 
-      </Routes>
+          {/* Protected routes — redirect to login if not authenticated */}
+          <Route path='/' element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path='feed' element={<ProtectedRoute><Hardware /></ProtectedRoute>} />
+          <Route path='wifi' element={<ProtectedRoute><WiFiConnection /></ProtectedRoute>} />
+          <Route path='clock' element={<ProtectedRoute><ClockComponent /></ProtectedRoute>} />
+          <Route path='logs' element={<ProtectedRoute><FeedLogs /></ProtectedRoute>} />
+          <Route path='profile' element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        </Routes>
       </BrowserRouter>
     </div>
   );
