@@ -14,7 +14,10 @@ const { loginUser,
         updateUsername,
         updatePassword,
         updateAbout,
-        getRecentActivity
+        getRecentActivity,
+        getComments,
+        postComment,
+        deleteComment
       } = require('../controller/userController')
 
 const { getAllUsers } = require('../controller/adminController')
@@ -65,6 +68,11 @@ router.patch('/:id/update-about', requireAuth, updateAbout)
 
 // Get recent activity (protected)
 router.get('/:id/recent-activity', requireAuth, getRecentActivity)
+
+// Comments (protected)
+router.get('/comments/:videoId', requireAuth, getComments)
+router.post('/comments', requireAuth, postComment)
+router.delete('/comments/:commentId', requireAuth, deleteComment)
 
 router.get("/stream", (req, res) => {
     res.redirect(`http://192.168.100.32/stream`);

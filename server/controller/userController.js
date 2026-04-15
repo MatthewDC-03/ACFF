@@ -5,6 +5,7 @@ const validator = require('validator')
 const { Time, TimeModel } = require('../model/timeModel')
 const { LogsTime } = require('../model/timeLogsModel')
 const { esp32 } = require('../model/esp32Model')
+const { Comment } = require('../model/commentModel')
 
 const createToken = (_id) =>{
     //       payloader      the secret       user only have 3days to login and the token epxired
@@ -324,4 +325,47 @@ const getRecentActivity = async (req, res) => {
     }
 }
 
-module.exports = { loginUser, registerUser, getUser, manualActivation, getTimedFeed, postTimedFeed, deleteTimedFeed, logsTimeFeed, getLogsTimedFeed, esp32CamID, updateUsername, updatePassword, updateAbout, getRecentActivity }
+// Get comments for a video
+const getComments = async (req, res) => {
+    const { videoId } = req.params
+    try {
+        const comments = await Comment.find({ videoId }).sort({ createdAt: -1 })
+        res.status(200).json(comments)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+// Post a comment
+const postComment = async (req, res) => {
+    const { videoId, userId, username, text } = req.body
+    if (!videoId || !userId || !username || !text) {
+        return res.status(400).json({ error: 'All fields are required' })
+    }
+    try {
+        const comment = new Comment({ videoId, userId, username, text })
+        await comment.save()
+        res.status(201).json(comment)
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+// Delete a comment
+const deleteComment = async (req, res) => {
+    const { commentId } = req.params
+    const { userId } = req.body
+    try {
+        const comment = await Comment.findById(commentId)
+        if (!comment) return res.status(404).json({ error: 'Comment not found' })
+        if (comment.userId.toString() !== userId) {
+            return res.status(403).json({ error: 'Not authorized to delete this comment' })
+        }
+        await Comment.findByIdAndDelete(commentId)
+        res.status(200).json({ message: 'Comment deleted' })
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+module.exports = { loginUser, registerUser, getUser, manualActivation, getTimedFeed, postTimedFeed, deleteTimedFeed, logsTimeFeed, getLogsTimedFeed, esp32CamID, updateUsername, updatePassword, updateAbout, getRecentActivity, getComments, postComment, deleteComment }

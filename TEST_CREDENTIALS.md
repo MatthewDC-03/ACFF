@@ -5,7 +5,7 @@
 You can create test accounts by registering through the application. Here are some example credentials you can use:
 
 ### Test Account 1
-- **Username:** testuser1
+- **Username:** Adobo123
 - **Email:** testuser1@example.com
 - **Password:** TestPassword123!
 
