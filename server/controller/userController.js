@@ -6,6 +6,7 @@ const { Time, TimeModel } = require('../model/timeModel')
 const { LogsTime } = require('../model/timeLogsModel')
 const { esp32 } = require('../model/esp32Model')
 const { Comment } = require('../model/commentModel')
+const { Like } = require('../model/likeModel')
 
 const createToken = (_id) =>{
     //       payloader      the secret       user only have 3days to login and the token epxired
@@ -368,4 +369,37 @@ const deleteComment = async (req, res) => {
     }
 }
 
-module.exports = { loginUser, registerUser, getUser, manualActivation, getTimedFeed, postTimedFeed, deleteTimedFeed, logsTimeFeed, getLogsTimedFeed, esp32CamID, updateUsername, updatePassword, updateAbout, getRecentActivity, getComments, postComment, deleteComment }
+// Get like count and whether current user liked a video
+const getLikes = async (req, res) => {
+    const { videoId } = req.params
+    const { userId } = req.query
+    try {
+        const count = await Like.countDocuments({ videoId })
+        const liked = userId ? !!(await Like.findOne({ videoId, userId })) : false
+        res.status(200).json({ count, liked })
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+// Toggle like (like if not liked, unlike if already liked)
+const toggleLike = async (req, res) => {
+    const { videoId, userId } = req.body
+    if (!videoId || !userId) {
+        return res.status(400).json({ error: 'videoId and userId are required' })
+    }
+    try {
+        const existing = await Like.findOne({ videoId, userId })
+        if (existing) {
+            await Like.deleteOne({ videoId, userId })
+        } else {
+            await Like.create({ videoId, userId })
+        }
+        const count = await Like.countDocuments({ videoId })
+        res.status(200).json({ liked: !existing, count })
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+}
+
+module.exports = { loginUser, registerUser, getUser, manualActivation, getTimedFeed, postTimedFeed, deleteTimedFeed, logsTimeFeed, getLogsTimedFeed, esp32CamID, updateUsername, updatePassword, updateAbout, getRecentActivity, getComments, postComment, deleteComment, getLikes, toggleLike }

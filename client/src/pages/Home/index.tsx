@@ -27,6 +27,8 @@ interface CommentType {
 
 const Home = () => {
     const [heart, setHeart] = useState(false)
+    const [likeCount, setLikeCount] = useState(0)
+    const [likeLoading, setLikeLoading] = useState(false)
     const [commentOpen, setCommentOpen] = useState(false)
     const [comments, setComments] = useState<CommentType[]>([])
     const [commentText, setCommentText] = useState('')
@@ -41,6 +43,22 @@ const Home = () => {
         document.body.style.overflow = ''
         document.body.style.height = '100vh'
     }, [])
+
+    // Fetch like state on mount
+    useEffect(() => {
+        if (!user) return
+        const fetchLikes = async () => {
+            try {
+                const res = await apiCall(`/api/user/likes/${VIDEO_ID}?userId=${user.userIdLogin}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setHeart(data.liked)
+                    setLikeCount(data.count)
+                }
+            } catch { /* silent */ }
+        }
+        fetchLikes()
+    }, [user])
 
     // Fetch comments when drawer opens
     useEffect(() => {
@@ -92,6 +110,34 @@ const Home = () => {
         } catch { /* silent */ }
     }
 
+    const handleToggleLike = async () => {
+        if (!user || likeLoading) return
+        setLikeLoading(true)
+        // Optimistic update
+        const wasLiked = heart
+        setHeart(!wasLiked)
+        setLikeCount(c => wasLiked ? c - 1 : c + 1)
+        try {
+            const res = await apiCall('/api/user/likes/toggle', {
+                method: 'POST',
+                body: JSON.stringify({ videoId: VIDEO_ID, userId: user.userIdLogin })
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setHeart(data.liked)
+                setLikeCount(data.count)
+            } else {
+                // Revert on failure
+                setHeart(wasLiked)
+                setLikeCount(c => wasLiked ? c + 1 : c - 1)
+            }
+        } catch {
+            setHeart(wasLiked)
+            setLikeCount(c => wasLiked ? c + 1 : c - 1)
+        }
+        setLikeLoading(false)
+    }
+
     const formatTime = (iso: string) => {
         const diff = Date.now() - new Date(iso).getTime()
         const mins = Math.floor(diff / 60000)
@@ -136,8 +182,24 @@ const Home = () => {
 
                         {/* User Actions */}
                         <div className="flex flex-col gap-3">
-                            <ClickableImage action={() => setHeart(h => !h)} getAction={heart} src={HeartIcon} />
-                            <ClickableImage action={() => setCommentOpen(true)} getAction={commentOpen} src={CommentIcon} />
+                            {/* Heart with count */}
+                            <div className="flex flex-col items-center gap-1">
+                                <ClickableImage
+                                    action={handleToggleLike}
+                                    getAction={heart}
+                                    src={HeartIcon}
+                                />
+                                <span className={`text-sm font-semibold ${heart ? 'text-primary' : 'text-black/50'}`}>
+                                    {likeCount}
+                                </span>
+                            </div>
+                            {/* Comment with count */}
+                            <div className="flex flex-col items-center gap-1">
+                                <ClickableImage action={() => setCommentOpen(true)} getAction={commentOpen} src={CommentIcon} />
+                                <span className={`text-sm font-semibold ${commentOpen ? 'text-primary' : 'text-black/50'}`}>
+                                    {comments.length}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

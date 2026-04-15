@@ -17,7 +17,9 @@ const { loginUser,
         getRecentActivity,
         getComments,
         postComment,
-        deleteComment
+        deleteComment,
+        getLikes,
+        toggleLike
       } = require('../controller/userController')
 
 const { getAllUsers } = require('../controller/adminController')
@@ -73,6 +75,10 @@ router.get('/:id/recent-activity', requireAuth, getRecentActivity)
 router.get('/comments/:videoId', requireAuth, getComments)
 router.post('/comments', requireAuth, postComment)
 router.delete('/comments/:commentId', requireAuth, deleteComment)
+
+// Likes (protected)
+router.get('/likes/:videoId', requireAuth, getLikes)
+router.post('/likes/toggle', requireAuth, toggleLike)
 
 router.get("/stream", (req, res) => {
     res.redirect(`http://192.168.100.32/stream`);
