@@ -18,11 +18,11 @@ const SignIn = () => {
     const from = (location.state as any)?.from?.pathname || '/'
 
     return (
-        <div className="relative h-100 w-100 bg-[#C1CFA1]">
-            <img src={Paw} alt="..." className="absolute bottom-0" />
-            <img src={Paw2} alt="..." className="absolute right-0 top-0" />
+        <div className="relative min-h-screen w-full bg-[#C1CFA1] overflow-x-hidden">
+            <img src={Paw} alt="..." className="absolute bottom-0 hidden md:block" />
+            <img src={Paw2} alt="..." className="absolute right-0 top-0 hidden md:block" />
 
-            <div className="h-[100vh] w-100 flex justify-center items-center">
+            <div className="min-h-screen w-full flex justify-center items-center">
                 <Form
                     submit={async (event) => {
                         event.preventDefault()

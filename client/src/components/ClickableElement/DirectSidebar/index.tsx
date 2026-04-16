@@ -8,9 +8,9 @@ const DirectSidebar = ({image, size, text, color, filter, font_size, onClick}: {
     onClick?: () => void
 }) =>{
     return(
-        <div className='flex items-center cursor-pointer flex-row gap-3 hover:opacity-80 transition-opacity' onClick={onClick}>
+        <div className='flex items-center cursor-pointer flex-row gap-3 hover:opacity-80 transition-opacity' title={text} onClick={onClick}>
                 <img src={image} alt="icon" height={size} width={size} style={{filter: `${filter}`}} />
-                <h1 className={`${font_size} font-bold ${color}`} >{text}</h1>
+                <span className="hidden lg:inline"><h1 className={`${font_size} font-bold ${color}`} >{text}</h1></span>
         </div>
     )
 }

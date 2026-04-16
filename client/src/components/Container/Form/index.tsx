@@ -7,73 +7,51 @@ const Form = ({children, submit}: {
     submit: (event: React.FormEvent<HTMLFormElement>) => void
 }) =>{
     return(
-        <div className="w-full 
-    h-full 
-    rounded-none 
-    shadow-none 
-    flex 
-    flex-col
-    z-10 
-    bg-custom_white 
-    overflow-auto
-            md:h-full md:w-full md:rounded-none md:flex-col md:overflow-auto md:justify-between
-            lg:w-4/6 lg:rounded-lg lg:shadow-2xl lg:flex lg:h-5/6 lg:flex-row lg:overflow-hidden 
-            xl:w-4/6 xl:rounded-lg xl:shadow-2xl xl:flex xl:h-5/6 xl:flex-row xl:overflow-hidden 
-        " >
-            <div className="relative h-fit w-full bg-custom-gradient 
-                            md:w-full
-                            lg:h-full
-                            xl:h-full xl:w-5/6
-            " > 
-            <div className="h-fit w-full p-4 flex flex-col gap-3
-            md:p-2 md:gap-4
-            lg:gap-10 lg:justify-start lg:items-start lg:p-5
-            xl:gap-10
-            " >
-            <Direct 
-                image={MainIcon} 
-                size={50}
-                text="FeederShare"
-                color="text-white"
-                filter="brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(116deg) brightness(109%) contrast(109%)"
-                font_size='text-2xl
-                           max-sm:text-lg
-                           md:text-2xl
-                           lg:text-2xl
-                           xl:text-4xl
-                '
-                />
-            <h1 className="text-custom_white font-extrabold text-2xl
-                             md:text-3xl md:text-center 
-                             lg:text-4xl lg:text-start
-                             xl:text-5xl
-            " >AUTOMATIC CAT FOOD FEEDER</h1>
-            <p className="text-custom_white/80 text-xs text-justify
-                            md:text-md md:text-center
-                            lg:text-sm lg:text-start
-                            xl:text-md
-            "> Welcome to FeederShare! Easily manage your
-                cat's feeding schedule and connect with other
-                pet owners through our social media features.</p>
+        /* Outer card — full screen on mobile, centered card on desktop */
+        <div className="w-full min-h-screen flex flex-col z-10 bg-custom_white
+                        lg:w-4/6 lg:min-h-0 lg:h-[90vh] lg:max-h-[700px] lg:flex-row lg:rounded-2xl lg:shadow-2xl lg:overflow-hidden
+                        xl:w-3/5 xl:h-[85vh] xl:max-h-[750px]">
+
+            {/* ── Left branding panel ── */}
+            <div className="relative flex flex-col justify-between bg-custom-gradient overflow-hidden
+                            w-full flex-shrink-0 min-h-[200px] sm:min-h-[220px]
+                            lg:w-[45%] lg:min-h-0 lg:h-full">
+
+                {/* Text content */}
+                <div className="flex flex-col gap-3 p-5 lg:gap-6 lg:p-8 z-10">
+                    <Direct
+                        image={MainIcon}
+                        size={40}
+                        text="FeederShare"
+                        color="text-white"
+                        filter="brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(116deg) brightness(109%) contrast(109%)"
+                        font_size="text-xl lg:text-2xl xl:text-3xl"
+                    />
+                    {/* Show heading/desc on all breakpoints, sized appropriately */}
+                    <h1 className="text-custom_white font-extrabold text-lg sm:text-xl lg:text-2xl xl:text-3xl leading-tight">
+                        AUTOMATIC CAT FOOD FEEDER
+                    </h1>
+                    <p className="text-custom_white/80 text-xs sm:text-sm lg:text-sm xl:text-base leading-relaxed">
+                        Welcome to FeederShare! Easily manage your cat's feeding schedule and connect with other pet owners through our social media features.
+                    </p>
+                </div>
+
+                {/* Cat image — sits at the bottom of the panel */}
+                <div className="hidden lg:flex w-full justify-center items-end">
+                    <div className="w-full bg-custom_white rounded-t-[120px] flex justify-center items-center pt-4 pb-0">
+                        <img src={CatImage} alt="cat" className="w-56 xl:w-64 object-contain" />
+                    </div>
+                </div>
             </div>
-            <div  className="absolute w-full h-auto bg-custom_white rounded-t-[150px] hidden bottom-0
-                              lg:h-60 lg:flex lg:justify-center lg:items-center
-            " >
-        <img
-         className="object-contain
-                    lg:w-72
-          "
-          src={CatImage}
-          alt="..."
-        />
-      </div>
-            </div>
-            <form className=" h-full w-full bg-custom_white flex flex-col justify-evenly p-4 gap-5 items-center
-                             md:w-full md:h-fit md:p-7 md:gap-6
-                             lg:h-full
-                             xl:h-full
-            " onSubmit={submit} method="POST"> 
-            {children}
+
+            {/* ── Right form panel ── */}
+            <form
+                className="flex-1 bg-custom_white flex flex-col justify-evenly items-center p-6 gap-5
+                           lg:p-8 lg:gap-6 lg:overflow-y-auto"
+                onSubmit={submit}
+                method="POST"
+            >
+                {children}
             </form>
         </div>
     )

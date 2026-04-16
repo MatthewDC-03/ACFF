@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '../../../hooks/useAuthContext';
+import { useApi } from '../../../hooks/useApi';
 
 const TimeCarousel = () => {
-    const { user } = useAuthContext() 
-  const [hour, setHour] = useState<number>(12); // Default hour set to 12
-  const [minute, setMinute] = useState<number>(0); // Default minute set to 00
-  const [second, setSecond] = useState<number>(0); // Default second set to 00
-  const [amPm, setAmPm] = useState<string>('AM'); // Default AM/PM set to AM
-  const [dragging, setDragging] = useState(false); // To control dragging state
-  const [timeSet, setTimeSet] = useState<string>(''); // To display the set time message
-  const [amPmVisibility, setAmPmVisibility] = useState<'upper' | 'lower'>('upper'); // Default visibility set to 'upper'
-  const [timeList, setTimeList] = useState<string[]>([]); // List to store the set times
+    const { user } = useAuthContext()
+    const { apiCall } = useApi()
+  const [hour, setHour] = useState<number>(12);
+  const [minute, setMinute] = useState<number>(0);
+  const [second, setSecond] = useState<number>(0);
+  const [amPm, setAmPm] = useState<string>('AM');
+  const [dragging, setDragging] = useState(false);
+  const [timeSet, setTimeSet] = useState<string>('');
+  const [amPmVisibility, setAmPmVisibility] = useState<'upper' | 'lower'>('upper');
+  const [timeList, setTimeList] = useState<string[]>([]);
   const [error, setError] = useState(null);
   const userId = user?.userIdLogin
   const [deleteTime, deleteSetTime] = useState<string>('');
@@ -18,17 +20,10 @@ const TimeCarousel = () => {
   useEffect(()=>{
       const fetchTimes = async () => {
           try{
-            const response = await fetch(`https://acff-api.vercel.app/api/user/${userId}/get-times`,{
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-
+            const response = await apiCall(`/api/user/${userId}/get-times`)
             const times = await response.json();
-        // Extract only the `time` field and update state
-        const timeOnly = times.map((item: any) => item.time);
-        setTimeList(timeOnly);
+            const timeOnly = times.map((item: any) => item.time);
+            setTimeList(timeOnly);
           }
           catch(error: any){
             setError(error.message);
@@ -97,41 +92,32 @@ const TimeCarousel = () => {
   };
 
   const handleSetTime = async () => {
-    const userId = user?.userIdLogin
     const newTime = `${hour.toString().padStart(2, '0')}:${minute
       .toString()
       .padStart(2, '0')}:${second.toString().padStart(2, '0')} ${amPm}`;
     setTimeSet(newTime);
 
     try{
-        await fetch("https://acff-api.vercel.app/api/user/set-time", {
+        const res = await apiCall('/api/user/set-time', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                userId,
-                time: newTime 
-            }),
+            body: JSON.stringify({ userId, time: newTime }),
         })
-        
 
-    // Add the new time to the list and sort it
-    setTimeList((prevList) => {
-        const updatedList = [...prevList, newTime];
-        return updatedList.sort((a, b) => {
-          // Convert times to 24-hour format for correct sorting
-          const to24HourFormat = (time: string) => {
-            const [h, m, s, period] = time.split(/[:\s]/);
-            let hourIn24 = Number(h);
-            if (period === 'PM' && hourIn24 !== 12) hourIn24 += 12;
-            if (period === 'AM' && hourIn24 === 12) hourIn24 = 0;
-            return hourIn24 * 3600 + Number(m) * 60 + Number(s); // Return total seconds
-          };
-  
-          return to24HourFormat(a) - to24HourFormat(b);
-        });
-      });
+        if (res.ok) {
+          setTimeList((prevList) => {
+            const updatedList = [...prevList, newTime];
+            return updatedList.sort((a, b) => {
+              const to24HourFormat = (time: string) => {
+                const [h, m, s, period] = time.split(/[:\s]/);
+                let hourIn24 = Number(h);
+                if (period === 'PM' && hourIn24 !== 12) hourIn24 += 12;
+                if (period === 'AM' && hourIn24 === 12) hourIn24 = 0;
+                return hourIn24 * 3600 + Number(m) * 60 + Number(s);
+              };
+              return to24HourFormat(a) - to24HourFormat(b);
+            });
+          });
+        }
     }
     catch(error){
         console.error('Error setting time:', error);
@@ -172,26 +158,19 @@ const TimeCarousel = () => {
   });
 
   const handleDeleteTime = async (time: any) => {
-    const userId = user?.userIdLogin
     try{
-        const response = await fetch('https://acff-api.vercel.app/api/user/delete-time',{
+        const response = await apiCall('/api/user/delete-time', {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userId: userId,
-                time: time
-            })
+            body: JSON.stringify({ userId, time })
         })
 
         const result = await response.json();
-      if (response.ok) {
-        // Remove the deleted time from the list
-        setTimeList((prevList) => prevList.filter((t) => t !== time));
-      } else {
-        setError(result.message);
-      }
+        if (response.ok) {
+          setTimeList((prevList) => prevList.filter((t) => t !== time));
+          deleteSetTime('');
+        } else {
+          setError(result.message);
+        }
     }
     catch(error){
         console.error(error)
@@ -199,146 +178,117 @@ const TimeCarousel = () => {
   }
 
   return (
-    <div className="flex flex-col justify-between pt-36 items-center w-full h-full select-none">
-      <div className='flex justify-between gap-24 w-full' >
-      <div className='flex justify-center items-center h-full w-full' >
-      <div className='relative flex flex-row gap-12 justify-center w-full' >
+    <div className="flex flex-col items-center w-full h-full select-none gap-8 py-8 px-4">
 
-      <div className='absolute -top-10 bg-primary w-10/12 h-1 rounded-full' ></div>
-        <div className='absolute -bottom-10 bg-primary w-10/12 h-1 rounded-full' ></div>
+      {/* Clock + Schedule row */}
+      <div className='flex flex-col lg:flex-row justify-between gap-8 w-full flex-1 min-h-0'>
 
-          {/* Hour Carousel */}
-      <div
-        className="relative flex justify-center items-center cursor-grab select-none"
-        onMouseDown={(e) => handleDrag(e, 'hour')}
-      >
+        {/* Clock carousel */}
+        <div className='flex justify-center items-center w-full lg:flex-1'>
+          <div className='relative flex flex-row gap-8 md:gap-12 justify-center w-full' style={{ paddingTop: '12rem', paddingBottom: '12rem' }}>
 
-        {/* Upper Indicator: Next Hour */}
-        <div className="absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
-          <div>{((hour + 1) % 12 === 0 ? 12 : (hour % 12) + 1).toString().padStart(2, '0')}</div>
+            <div className='absolute top-0 left-1/2 -translate-x-1/2 bg-primary w-10/12 h-1 rounded-full'></div>
+            <div className='absolute bottom-0 left-1/2 -translate-x-1/2 bg-primary w-10/12 h-1 rounded-full'></div>
+
+            {/* Hour Carousel */}
+            <div
+              className="relative flex justify-center items-center cursor-grab select-none"
+              onMouseDown={(e) => handleDrag(e, 'hour')}
+            >
+              <div className="absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
+                <div>{((hour + 1) % 12 === 0 ? 12 : (hour % 12) + 1).toString().padStart(2, '0')}</div>
+              </div>
+              <div className="flex justify-center font-semibold text-primary items-center text-8xl z-10">
+                {hour.toString().padStart(2, '0')}
+              </div>
+              <div className="absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
+                <div>{(hour === 1 ? 12 : hour - 1).toString().padStart(2, '0')}</div>
+              </div>
+            </div>
+
+            <div className="flex justify-center items-center font-semibold text-primary text-8xl z-10">:</div>
+
+            {/* Minute Carousel */}
+            <div
+              className="relative flex justify-center items-center cursor-grab select-none"
+              onMouseDown={(e) => handleDrag(e, 'minute')}
+            >
+              <div className="absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
+                <div>{(minute + 1) % 60 === 0 ? 59 : (minute + 1).toString().padStart(2, '0')}</div>
+              </div>
+              <div className="flex justify-center font-semibold text-primary items-center text-8xl z-10">
+                {minute.toString().padStart(2, '0')}
+              </div>
+              <div className="absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
+                <div>{minute === 0 ? 59 : (minute - 1).toString().padStart(2, '0')}</div>
+              </div>
+            </div>
+
+            <div className="flex justify-center items-center font-semibold text-primary text-8xl z-10">:</div>
+
+            {/* Second Carousel */}
+            <div
+              className="relative flex justify-center items-center cursor-grab select-none"
+              onMouseDown={(e) => handleDrag(e, 'second')}
+            >
+              <div className="absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
+                <div>{(second + 1) % 60 === 0 ? 59 : (second + 1).toString().padStart(2, '0')}</div>
+              </div>
+              <div className="flex justify-center font-semibold text-primary items-center text-8xl z-10">
+                {second.toString().padStart(2, '0')}
+              </div>
+              <div className="absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
+                <div>{second === 0 ? 59 : (second - 1).toString().padStart(2, '0')}</div>
+              </div>
+            </div>
+
+            {/* AM/PM Toggle */}
+            <div
+              className="relative flex justify-center items-center cursor-grab select-none"
+              onMouseDown={(e) => handleDrag(e, 'ampm')}
+            >
+              <div className={`absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50 ${amPmVisibility === 'upper' ? '' : 'hidden'}`}>
+                PM
+              </div>
+              <div className="flex justify-center items-center font-semibold text-primary text-8xl z-10">{amPm}</div>
+              <div className={`absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50 ${amPmVisibility === 'lower' ? '' : 'hidden'}`}>
+                AM
+              </div>
+            </div>
+
+          </div>
         </div>
 
-        {/* Current Hour */}
-        <div className="flex justify-center font-semibold text-primary items-center text-8xl z-10">
-          {hour.toString().padStart(2, '0')}
+        {/* Schedule list */}
+        <div className="flex flex-col gap-4 lg:w-48 flex-shrink-0">
+          <h3 className="font-semibold text-3xl">Schedule</h3>
+          <ul className='flex flex-col gap-3'>
+            {sortedTimeList.map((time, index) => (
+              <li key={index}>
+                <button
+                  onClick={() => { handleClickTime(time); deleteSetTime(time) }}
+                  className={`${getCurrentTimeLabel(time) ? "bg-primary text-custom_white hover:brightness-75" : "text-black hover:bg-gray-200"} rounded-full text-xl font-semibold px-4 py-2 whitespace-pre`}
+                >
+                  {time}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* Lower Indicator: Previous Hour */}
-        <div className="absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
-          <div>{(hour === 1 ? 12 : hour - 1).toString().padStart(2, '0')}</div>
-        </div>
       </div>
-      <div className="flex justify-center items-center font-semibold text-primary text-8xl z-10">
-          :
-        </div>
-      {/* Minute Carousel */}
-      <div
-        className="relative flex justify-center items-center cursor-grab select-none"
-        onMouseDown={(e) => handleDrag(e, 'minute')}
-      >
-        {/* Upper Indicator: Next Minute */}
-        <div className="absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
-          <div>{(minute + 1) % 60 === 0 ? 59 : (minute + 1).toString().padStart(2, '0')}</div>
-        </div>
 
-        {/* Current Minute */}
-        <div className="flex justify-center font-semibold text-primary items-center text-8xl z-10">
-          {minute.toString().padStart(2, '0')}
-        </div>
-
-        {/* Lower Indicator: Previous Minute */}
-        <div className="absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
-          <div>{minute === 0 ? 59 : (minute - 1).toString().padStart(2, '0')}</div>
-        </div>
-      </div>
-
-      <div className="flex justify-center items-center font-semibold text-primary text-8xl z-10">
-          :
-        </div>
-      {/* Second Carousel */}
-      <div
-        className="relative flex justify-center items-center cursor-grab select-none"
-        onMouseDown={(e) => handleDrag(e, 'second')}
-      >
-        {/* Upper Indicator: Next Second */}
-        <div className="absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
-          <div>{(second + 1) % 60 === 0 ? 59 : (second + 1).toString().padStart(2, '0')}</div>
-        </div>
-
-        {/* Current Second */}
-        <div className="flex justify-center font-semibold text-primary items-center text-8xl z-10">
-          {second.toString().padStart(2, '0')}
-        </div>
-
-        {/* Lower Indicator: Previous Second */}
-        <div className="absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50">
-          <div>{second === 0 ? 59 : (second - 1).toString().padStart(2, '0')}</div>
-        </div>
-      </div>
-
-      {/* AM/PM Toggle */}
-      <div
-        className="relative flex justify-center items-center cursor-grab select-none"
-        onMouseDown={(e) => handleDrag(e, 'ampm')}
-      >
-        {/* Upper Indicator: AM */}
-        <div
-          className={`absolute -top-36 left-0 w-full text-7xl flex justify-center items-center opacity-50 ${
-            amPmVisibility === 'upper' ? '' : 'hidden'
-          }`}
+      {/* SET / REMOVE buttons — centered below the clock */}
+      <div className='w-full flex flex-row justify-center items-center gap-6 pb-6'>
+        <button onClick={handleSetTime} className="bg-primary font-semibold text-xl hover:brightness-75 text-white px-14 py-4 rounded-lg min-w-[140px]">
+          SET
+        </button>
+        <button
+          onClick={() => handleDeleteTime(deleteTime)}
+          className="bg-red-500/90 font-semibold text-xl hover:brightness-75 text-white px-14 py-4 rounded-lg min-w-[140px]"
         >
-         PM 
-        </div>
-
-        {/* Current AM/PM */}
-        <div className="flex justify-center items-center font-semibold text-primary text-8xl z-10">{amPm}</div>
-
-        {/* Lower Indicator: PM */}
-        <div
-          className={`absolute -bottom-36 left-0 w-full text-7xl flex justify-center items-center opacity-50 ${
-            amPmVisibility === 'lower' ? '' : 'hidden'
-          }`}
-        >
-          AM
-        </div>
-      </div>
-      </div>
-      </div>
-      
-      {/* Display Time List */}
-      <div className="mt-4 gap-5 flex flex-col h-full">
-        <h3 className="font-semibold text-3xl">Schedule</h3>
-        <ul className='flex flex-col gap-3' > 
-          {sortedTimeList.map((time, index) => (
-            <li key={index}>
-              <button
-                onClick={() => {
-                    handleClickTime(time)
-                    deleteSetTime(time)
-
-                }}
-                className={`${getCurrentTimeLabel(time) ? "bg-primary text-custom_white hover:brightness-75 " : "text-black hover:bg-gray-200"} rounded-full text-xl font-semibold px-4 py-2  whitespace-pre p-2`}
-              >
-                {time}
-                {getCurrentTimeLabel(time)}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-      
-      </div>
-      
-      {/* Set Time Button */}
-      <div className='w-full flex flex-row justify-evenly mt-16  pr-20' >
-      <button onClick={handleSetTime} className="bg-primary font-semibold text-2xl hover:brightness-75 text-white px-20 py-4 rounded-lg">
-        SET
-      </button>
-      <button onClick={()=>{
-        handleDeleteTime(deleteTime)
-      }} className="bg-red-500/90 font-semibold text-2xl hover:brightness-75 text-white px-20 py-4 rounded-lg">
-        REMOVE
-      </button>
+          REMOVE
+        </button>
       </div>
 
     </div>

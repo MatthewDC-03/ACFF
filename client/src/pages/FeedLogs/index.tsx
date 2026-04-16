@@ -1,10 +1,9 @@
-import Navbar from "../../components/Navbar"
 import { Link } from "react-router-dom"
 import PrimaryButton from "../../components/Buttons/Primary"
-import Sidebar from "../../components/Sidebar"
 import SecondaryButton from "../../components/Buttons/Secondary"
 import { useAuthContext } from "../../hooks/useAuthContext"
 import { useEffect, useState } from "react"
+import AppLayout from "../../components/AppLayout"
 
 type Log = {
     _id: string;
@@ -51,100 +50,93 @@ export const FeedLogs = () =>{
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ _id: userId }), // Send username instead of userId
+                body: JSON.stringify({ _id: userId }),
             });
 
-            const data = await res.json(); // Use 'res' to get the response JSON
+            const data = await res.json();
             if (res.ok) {
-                console.log(data); // Log the success message
+                console.log(data);
                 setIsLoading(true)
                 setTimeout(()=>{
                     setIsLoading(false)
                 }, 5000)
             } else {
-                console.log(data); // Log the error message
+                console.log(data);
             }
         } catch (error) {
-            console.error('Error toggling type:', error); // Log any errors that occur
+            console.error('Error toggling type:', error);
         }
     }
 
-    return(
-        <>
-        <Navbar>
-        <Link to="/" >
-                <PrimaryButton 
-                text="Go Back" 
+    const navbarChildren = (
+        <Link to="/">
+            <PrimaryButton
+                text="Go Back"
                 className='rounded-lg'
-                />
-                </Link>
-        </Navbar>
-        <div className="absolute justify-between flex flex-row w-full h-[calc(100vh-89.09px)] mt-[89.09px]">
-            <Sidebar>
-            <div className="flex flex-col gap-10" >
-            <Link to="/feed" >
-            <SecondaryButton
-                text="Feed Now"
-                className={`${isLoadng && 'bg-primary/50 cursor-not-allowed' } text-white w-full border-0 bg-primary`}
-                onClick={handleToggleType}
-                disabled={isLoadng}
+            />
+        </Link>
+    )
+
+    const sidebarChildren = (
+        <div className="flex flex-col gap-10">
+            <Link to="/feed">
+                <SecondaryButton
+                    text="Feed Now"
+                    className={`${isLoadng && 'bg-primary/50 cursor-not-allowed'} text-white w-full border-0 bg-primary`}
+                    onClick={handleToggleType}
+                    disabled={isLoadng}
                 />
             </Link>
-                <Link to="/clock" >
+            <Link to="/clock">
                 <SecondaryButton
-                text="Timed Feed"
-                className="text-white w-full border-0 bg-primary"
-                onClick={()=>{
-                    
-                }}
-                disabled={false}
+                    text="Timed Feed"
+                    className="text-white w-full border-0 bg-primary"
+                    onClick={()=>{}}
+                    disabled={false}
                 />
-                </Link>
-                <Link to='/logs' >
+            </Link>
+            <Link to='/logs'>
                 <SecondaryButton
-                text="Feed Logs"
-                className="w-full"
-                onClick={() => {
-
-                }}
-                disabled={false}
+                    text="Feed Logs"
+                    className="w-full"
+                    onClick={() => {}}
+                    disabled={false}
                 />
-                </Link>
-            <hr className=" border-black/20" />
-            <p className="text-sm text-black/40" >Captured something on camera? Click "View Records" to watch the footage instantly!</p>
+            </Link>
+            <hr className="border-black/20" />
+            <p className="text-sm text-black/40">Captured something on camera? Click "View Records" to watch the footage instantly!</p>
             <SecondaryButton
                 text="View Records"
                 className=""
-                onClick={() => {
-
-                }}
+                onClick={() => {}}
                 disabled={false}
-                />
-            </div>
-            </Sidebar>
-            <div className=" w-3/4 py-7 flex justify-center " >
+            />
+        </div>
+    )
 
-                <div className=" w-fit flex flex-col gap-3 " >
-                    <ul className="text-custom_white justify-center bg-primary flex font-medium flex-row gap-10 text-xl px-6 py-2" >
+    return (
+        <AppLayout navbarChildren={navbarChildren} sidebarChildren={sidebarChildren}>
+            <div className="w-full py-4 md:py-7 flex justify-center px-4 md:px-0 pb-16 md:pb-0">
+                <div className="w-full max-w-2xl flex flex-col gap-3">
+                    <ul className="text-custom_white justify-center bg-primary flex font-medium flex-row gap-10 text-xl px-6 py-2 sticky top-0 z-10">
                         <li>Status</li>
                         <li>Timestamp</li>
                     </ul>
-                    <ul className="text-black flex flex-col gap-5 text-lg font-normal" >
-                        {
-                            getLogs.map((item,index)=>(
-                                <li key={item._id || index} className="flex text-lg w-full gap-10 border-b-2 border-b-primary" >
-                                    <span> {item.status}</span>
-                                    <span>{item.timestamp}</span>
-
-                                </li>
-                            ))
-                        }
-                    </ul>
+                    <div className="overflow-x-auto w-full">
+                        <ul className="text-black flex flex-col gap-5 text-lg font-normal">
+                            {
+                                getLogs.map((item, index) => (
+                                    <li key={item._id || index} className="flex text-lg w-full gap-10 border-b-2 border-b-primary">
+                                        <span>{item.status}</span>
+                                        <span>{item.timestamp}</span>
+                                    </li>
+                                ))
+                            }
+                        </ul>
+                    </div>
                 </div>
-
             </div>
-        </div>
-        </>
+        </AppLayout>
     )
 }
 

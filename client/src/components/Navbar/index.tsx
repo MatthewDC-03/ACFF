@@ -7,7 +7,7 @@ const Navbar = ({children}:{
 })=>{
     return(
         /* Header */
-        <header className='py-4 px-10 fixed inset-0 bg-white z-10 border-b-[2px] h-fit' >
+        <header className='py-4 px-4 md:px-10 fixed inset-0 w-full bg-white z-10 border-b-[2px] h-fit' >
             {/* Navbar */}
             <nav className='flex items-center justify-between' >
                 <Direct 
@@ -16,7 +16,7 @@ const Navbar = ({children}:{
                 text="FeederShare"
                 color="text-primary"
                 filter="brightness(0) saturate(100%) invert(73%) sepia(7%) saturate(1468%) hue-rotate(72deg) brightness(88%) contrast(86%)"
-                font_size='text-3xl'
+                font_size='text-xl md:text-3xl'
                 />
                 <div>
                     {children}

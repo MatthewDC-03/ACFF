@@ -1,5 +1,4 @@
-import Navbar from "../../components/Navbar"
-import Sidebar from "../../components/Sidebar"
+import AppLayout from "../../components/AppLayout"
 import VideoPlayer from "../../components/VideoCompo"
 import LocalVideo from "../../assets/videos/cattt.mp4"
 import CatVideo2 from "../../assets/videos/mixkit-pet-owner-playing-with-a-cute-cat-1779-hd-ready.mp4"
@@ -54,6 +53,7 @@ const Home = () => {
     const { user } = useAuthContext()
     const { apiCall } = useApi()
     const inputRef = useRef<HTMLInputElement>(null)
+    const mobileInputRef = useRef<HTMLInputElement>(null)
 
     // Per-video state map
     const [videoStates, setVideoStates] = useState<Record<string, VideoState>>(
@@ -105,7 +105,10 @@ const Home = () => {
             } catch { /* silent */ }
         }
         fetchComments()
-        setTimeout(() => inputRef.current?.focus(), 300)
+        setTimeout(() => {
+            inputRef.current?.focus()
+            mobileInputRef.current?.focus()
+        }, 300)
     }, [activeVideoId])
 
     const handleToggleLike = async (videoId: string) => {
@@ -206,163 +209,188 @@ const Home = () => {
 
     const activeComments = activeVideoId ? videoStates[activeVideoId]?.comments ?? [] : []
 
-    return (
-        <>
-            <Navbar>
-                <Link to="/wifi">
-                    <PrimaryButton text="Let's Feed" className='rounded-lg' />
-                </Link>
-            </Navbar>
-
-            <div className="absolute flex flex-row h-[calc(100vh-89.09px)] mt-[89.09px] w-100">
-                <Sidebar>
-                    <div className="flex flex-col gap-10">
-                        <DirectSidebar
-                            image={Homes} size={28} text="For You" color="text-primary"
-                            filter="brightness(0) saturate(100%) invert(73%) sepia(7%) saturate(1468%) hue-rotate(72deg) brightness(88%) contrast(86%)"
-                            font_size="text-xl"
-                        />
-                        <DirectSidebar
-                            image={Profile} size={28} text="Profile" color="text-black"
-                            filter="brightness(0) saturate(100%) invert(0%) sepia(86%) saturate(19%) hue-rotate(252deg) brightness(94%) contrast(76%)"
-                            font_size="text-xl"
-                            onClick={() => navigate('/profile')}
-                        />
+    // Shared comment input UI
+    const CommentInput = ({ inputReference }: { inputReference: React.RefObject<HTMLInputElement> }) => (
+        <div className="px-5 py-4 border-t border-primary/20 bg-white">
+            {user ? (
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-bold text-primary">{user.username?.charAt(0).toUpperCase()}</span>
                     </div>
-                </Sidebar>
+                    <input
+                        ref={inputReference}
+                        type="text"
+                        value={commentText}
+                        onChange={e => setCommentText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handlePostComment()}
+                        placeholder="Add a comment..."
+                        className="flex-1 bg-primary/10 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition placeholder:text-black/30"
+                    />
+                    <button
+                        onClick={handlePostComment}
+                        disabled={!commentText.trim() || posting}
+                        className={`w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 transition hover:brightness-95 ${!commentText.trim() || posting ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            ) : (
+                <p className="text-center text-sm text-black/40">
+                    <Link to="/login" className="text-primary font-semibold">Log in</Link> to comment
+                </p>
+            )}
+        </div>
+    )
 
-                {/* Videos Container — snap scroll */}
-                <div className="h-100 w-[calc(100vw-300px)] p-7 overflow-y-scroll flex items-center flex-col gap-14 snap-y snap-mandatory">
-                    {VIDEO_FEED.map((video) => {
-                        const state = videoStates[video.id]
-                        return (
-                            <div key={video.id} className="flex flex-row items-end justify-center gap-5 h-100 w-100 snap-center flex-shrink-0">
+    // Shared comments list UI
+    const CommentsList = () => (
+        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+            {activeComments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-black/30">
+                    <img src={CommentIcon} alt="no comments" className="w-12 h-12 opacity-20" />
+                    <p className="text-sm">No comments yet. Be the first!</p>
+                </div>
+            ) : (
+                activeComments.map(c => (
+                    <div key={c._id} className="flex gap-3 group">
+                        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-primary">{c.username.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-semibold text-black">{c.username}</span>
+                                <span className="text-xs text-black/30">{formatTime(c.createdAt)}</span>
+                            </div>
+                            <p className="text-sm text-black/70 mt-0.5 break-words">{c.text}</p>
+                        </div>
+                        {user?.userIdLogin === c.userId && (
+                            <button
+                                onClick={() => handleDeleteComment(activeVideoId!, c._id)}
+                                className="opacity-0 group-hover:opacity-100 transition text-black/30 hover:text-red-400 text-xs flex-shrink-0 self-start mt-1"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                ))
+            )}
+        </div>
+    )
+
+    // Shared drawer header UI
+    const DrawerHeader = () => (
+        <div className="flex items-center justify-between px-5 py-4 border-b border-primary/20">
+            <div>
+                <h2 className="text-lg font-bold text-black">Comments</h2>
+                <p className="text-xs text-black/40">{activeComments.length} comment{activeComments.length !== 1 ? 's' : ''}</p>
+            </div>
+            <button
+                onClick={() => setActiveVideoId(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/10 transition text-black/50 hover:text-black text-xl font-light"
+            >
+                ✕
+            </button>
+        </div>
+    )
+
+    return (
+        <AppLayout
+            navbarChildren={
+                <Link to="/wifi">
+                    <PrimaryButton text="Let's Feed" className='rounded-lg text-sm py-2 px-3 md:text-md md:py-3 md:px-6' />
+                </Link>
+            }
+            sidebarChildren={
+                <div className="flex flex-col gap-10">
+                    <DirectSidebar
+                        image={Homes} size={28} text="For You" color="text-primary"
+                        filter="brightness(0) saturate(100%) invert(73%) sepia(7%) saturate(1468%) hue-rotate(72deg) brightness(88%) contrast(86%)"
+                        font_size="text-xl"
+                    />
+                    <DirectSidebar
+                        image={Profile} size={28} text="Profile" color="text-black"
+                        filter="brightness(0) saturate(100%) invert(0%) sepia(86%) saturate(19%) hue-rotate(252deg) brightness(94%) contrast(76%)"
+                        font_size="text-xl"
+                        onClick={() => navigate('/profile')}
+                    />
+                </div>
+            }
+        >
+            {/* Videos Container — snap scroll */}
+            <div className="h-full w-full overflow-y-scroll flex items-center flex-col gap-14 snap-y snap-mandatory p-4 md:p-7 pb-16 md:pb-0">
+                {VIDEO_FEED.map((video) => {
+                    const state = videoStates[video.id]
+                    return (
+                        <div key={video.id} className="flex flex-row items-end justify-center gap-5 w-full snap-center flex-shrink-0 py-4">
+                            <div className="w-full max-w-[400px]">
                                 <VideoPlayer url={video.url} />
+                            </div>
 
-                                {/* User Actions */}
-                                <div className="flex flex-col gap-3">
-                                    {/* Heart */}
-                                    <div className="flex flex-col items-center gap-1">
-                                        <ClickableImage
-                                            action={() => handleToggleLike(video.id)}
-                                            getAction={state.liked}
-                                            src={HeartIcon}
-                                        />
-                                        <span className={`text-sm font-semibold ${state.liked ? 'text-primary' : 'text-black/50'}`}>
-                                            {state.likeCount}
-                                        </span>
-                                    </div>
-                                    {/* Comment */}
-                                    <div className="flex flex-col items-center gap-1">
-                                        <ClickableImage
-                                            action={() => setActiveVideoId(video.id)}
-                                            getAction={activeVideoId === video.id}
-                                            src={CommentIcon}
-                                        />
-                                        <span className={`text-sm font-semibold ${activeVideoId === video.id ? 'text-primary' : 'text-black/50'}`}>
-                                            {state.comments.length}
-                                        </span>
-                                    </div>
+                            {/* User Actions */}
+                            <div className="flex flex-col gap-3">
+                                {/* Heart */}
+                                <div className="flex flex-col items-center gap-1">
+                                    <ClickableImage
+                                        action={() => handleToggleLike(video.id)}
+                                        getAction={state.liked}
+                                        src={HeartIcon}
+                                    />
+                                    <span className={`text-sm font-semibold ${state.liked ? 'text-primary' : 'text-black/50'}`}>
+                                        {state.likeCount}
+                                    </span>
+                                </div>
+                                {/* Comment */}
+                                <div className="flex flex-col items-center gap-1">
+                                    <ClickableImage
+                                        action={() => setActiveVideoId(video.id)}
+                                        getAction={activeVideoId === video.id}
+                                        src={CommentIcon}
+                                    />
+                                    <span className={`text-sm font-semibold ${activeVideoId === video.id ? 'text-primary' : 'text-black/50'}`}>
+                                        {state.comments.length}
+                                    </span>
                                 </div>
                             </div>
-                        )
-                    })}
-                </div>
+                        </div>
+                    )
+                })}
             </div>
 
             {/* ── Comment Drawer ── */}
             {activeVideoId && (
-                <div className="fixed inset-0 z-50 flex items-end justify-end" onClick={() => setActiveVideoId(null)}>
-                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-                    <div
-                        className="relative z-10 bg-white rounded-tl-2xl rounded-bl-2xl flex flex-col shadow-2xl"
-                        style={{ width: '420px', height: 'calc(100vh - 89.09px)', marginTop: '89.09px' }}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-primary/20">
-                            <div>
-                                <h2 className="text-lg font-bold text-black">Comments</h2>
-                                <p className="text-xs text-black/40">{activeComments.length} comment{activeComments.length !== 1 ? 's' : ''}</p>
-                            </div>
-                            <button
-                                onClick={() => setActiveVideoId(null)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/10 transition text-black/50 hover:text-black text-xl font-light"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        {/* Comments List */}
-                        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
-                            {activeComments.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-3 text-black/30">
-                                    <img src={CommentIcon} alt="no comments" className="w-12 h-12 opacity-20" />
-                                    <p className="text-sm">No comments yet. Be the first!</p>
-                                </div>
-                            ) : (
-                                activeComments.map(c => (
-                                    <div key={c._id} className="flex gap-3 group">
-                                        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-sm font-bold text-primary">{c.username.charAt(0).toUpperCase()}</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-sm font-semibold text-black">{c.username}</span>
-                                                <span className="text-xs text-black/30">{formatTime(c.createdAt)}</span>
-                                            </div>
-                                            <p className="text-sm text-black/70 mt-0.5 break-words">{c.text}</p>
-                                        </div>
-                                        {user?.userIdLogin === c.userId && (
-                                            <button
-                                                onClick={() => handleDeleteComment(activeVideoId, c._id)}
-                                                className="opacity-0 group-hover:opacity-100 transition text-black/30 hover:text-red-400 text-xs flex-shrink-0 self-start mt-1"
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {/* Input */}
-                        <div className="px-5 py-4 border-t border-primary/20 bg-white">
-                            {user ? (
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-sm font-bold text-primary">{user.username?.charAt(0).toUpperCase()}</span>
-                                    </div>
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        value={commentText}
-                                        onChange={e => setCommentText(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && handlePostComment()}
-                                        placeholder="Add a comment..."
-                                        className="flex-1 bg-primary/10 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition placeholder:text-black/30"
-                                    />
-                                    <button
-                                        onClick={handlePostComment}
-                                        disabled={!commentText.trim() || posting}
-                                        className={`w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 transition hover:brightness-95 ${!commentText.trim() || posting ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                            <path d="M22 2L11 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            ) : (
-                                <p className="text-center text-sm text-black/40">
-                                    <Link to="/login" className="text-primary font-semibold">Log in</Link> to comment
-                                </p>
-                            )}
+                <>
+                    {/* Desktop: right-side panel (md+) */}
+                    <div className="hidden md:flex fixed inset-0 z-50 items-end justify-end" onClick={() => setActiveVideoId(null)}>
+                        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+                        <div
+                            className="relative z-10 bg-white rounded-tl-2xl rounded-bl-2xl flex flex-col shadow-2xl"
+                            style={{ width: '420px', height: 'calc(100vh - 89.09px)', marginTop: '89.09px' }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <DrawerHeader />
+                            <CommentsList />
+                            <CommentInput inputReference={inputRef} />
                         </div>
                     </div>
-                </div>
+
+                    {/* Mobile: bottom sheet (< md) */}
+                    <div className="flex md:hidden fixed inset-0 z-50 items-end" onClick={() => setActiveVideoId(null)}>
+                        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+                        <div
+                            className="relative z-10 bg-white rounded-t-2xl flex flex-col shadow-2xl w-full fixed bottom-0 left-0 right-0 h-[70vh]"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <DrawerHeader />
+                            <CommentsList />
+                            <CommentInput inputReference={mobileInputRef} />
+                        </div>
+                    </div>
+                </>
             )}
-        </>
+        </AppLayout>
     )
 }
 

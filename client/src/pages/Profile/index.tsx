@@ -1,5 +1,4 @@
-import Navbar from "../../components/Navbar"
-import Sidebar from "../../components/Sidebar"
+import AppLayout from "../../components/AppLayout"
 import { useAuthContext } from "../../hooks/useAuthContext"
 import { useNavigate, Link } from "react-router-dom"
 import { useEffect, useState } from "react"
@@ -165,54 +164,51 @@ const ProfilePage = () => {
         setPasswordLoading(false)
     }
 
+    const sidebarContent = (
+        <div className="flex flex-col gap-10">
+            <Link to="/">
+                <DirectSidebar
+                    image={Homes} size={28} text="For You" color="text-black"
+                    filter="brightness(0) saturate(100%) invert(0%) sepia(86%) saturate(19%) hue-rotate(252deg) brightness(94%) contrast(76%)"
+                    font_size="text-xl"
+                />
+            </Link>
+            <DirectSidebar
+                image={Profile} size={28} text="Profile" color="text-primary"
+                filter="brightness(0) saturate(100%) invert(73%) sepia(7%) saturate(1468%) hue-rotate(72deg) brightness(88%) contrast(86%)"
+                font_size="text-xl"
+            />
+        </div>
+    )
+
     return (
-        <>
-            <Navbar>
+        <AppLayout
+            navbarChildren={
                 <Link to="/wifi">
                     <PrimaryButton text="Let's Feed" className='rounded-lg' />
                 </Link>
-            </Navbar>
-
-            <div className="flex flex-row mt-[89.09px]">
-                {/* Sidebar — sticky so it stays while content scrolls */}
-                <div className="w-[300px] flex-shrink-0 sticky top-[89.09px] h-[calc(100vh-89.09px)] flex flex-col">
-                    <Sidebar>
-                        <div className="flex flex-col gap-10">
-                            <Link to="/">
-                                <DirectSidebar
-                                    image={Homes} size={28} text="For You" color="text-black"
-                                    filter="brightness(0) saturate(100%) invert(0%) sepia(86%) saturate(19%) hue-rotate(252deg) brightness(94%) contrast(76%)"
-                                    font_size="text-xl"
-                                />
-                            </Link>
-                            <DirectSidebar
-                                image={Profile} size={28} text="Profile" color="text-primary"
-                                filter="brightness(0) saturate(100%) invert(73%) sepia(7%) saturate(1468%) hue-rotate(72deg) brightness(88%) contrast(86%)"
-                                font_size="text-xl"
-                            />
-                        </div>
-                    </Sidebar>
-                </div>
-
+            }
+            sidebarChildren={sidebarContent}
+        >
                 {/* Main content — scrolls naturally */}
-                <div className="flex-1 p-7 flex flex-col gap-8 pb-16">
+                <div className="flex-1 p-4 md:p-7 flex flex-col gap-8 pb-16 md:pb-0">
 
                     {/* ── Profile Header ── */}
                     <div className="bg-custom-gradient rounded-2xl p-8 text-custom_white shadow-lg">
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4 md:gap-6">
                             {/* Avatar — first letter of username */}
                             <div className="w-24 h-24 bg-custom_white rounded-full flex items-center justify-center shadow-md flex-shrink-0">
                                 <span className="text-4xl font-bold text-primary">{avatarLetter}</span>
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold">{user.username}</h1>
+                                <h1 className="text-2xl md:text-3xl font-bold">{user.username}</h1>
                                 <p className="text-custom_white/80 mt-1 text-sm">FeederShare Member</p>
                             </div>
                         </div>
                     </div>
 
                     {/* ── Stats ── */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {[
                             { label: 'Total Videos', value: totalVideos },
                             { label: 'Followers', value: followers },
@@ -402,8 +398,8 @@ const ProfilePage = () => {
                     </div>
 
                 </div>
-            </div>
-        </>
+
+        </AppLayout>
     )
 }
 

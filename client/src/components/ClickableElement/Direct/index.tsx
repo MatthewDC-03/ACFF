@@ -14,11 +14,7 @@ const Direct = ({image, size, text, color, filter, font_size}: {
                 <img 
   src={image} 
   alt="icon" 
-  className="w-16 
-  max-sm:w-10 
-  md:w-10 
-  lg:w-16 
-  xl:w-20" 
+  className="w-10 lg:w-[65px] h-10 lg:h-[65px]" 
   style={{ filter: `${filter}` }} 
 />
                 <h1 className={`${font_size} font-semibold ${color}`} >{text}</h1>
